@@ -21,6 +21,7 @@ class Product(db.Model):
     description: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(default=datetime.now)
 
+
 def validate_product(form):
     """フォームの値をチェックして、エラーメッセージのリストを返す"""
     errors = []
@@ -42,7 +43,6 @@ def validate_product(form):
         errors.append("生産者名を入力してください")
 
     return errors
-
 
 
 def create_app(test_config=None):
@@ -89,5 +89,47 @@ def create_app(test_config=None):
     def show(product_id):
         product = db.get_or_404(Product, product_id)
         return render_template("products/show.html", product=product)
+    @app.route("/products/<int:product_id>/edit", methods=["GET", "POST"])
+    def edit(product_id):
+        product = db.get_or_404(Product, product_id)
+        if request.method == "POST":
+            errors = validate_product(request.form)
+            if errors:
+                return render_template(
+                    "products/form.html",
+                    errors=errors,
+                    form=request.form,
+                    product=product,
+                ), 422
+
+            product.name = request.form["name"].strip()
+            product.price = int(request.form["price"])
+            product.producer_name = request.form["producer_name"].strip()
+            product.description = request.form.get("description", "").strip()
+            db.session.commit()
+            flash("商品を更新しました")
+            return redirect(url_for("show", product_id=product.id))
+
+        form = {
+            "name": product.name,
+            "price": product.price,
+            "producer_name": product.producer_name,
+            "description": product.description,
+        }
+        return render_template(
+            "products/form.html", errors=[], form=form, product=product
+        )
+
+    @app.route("/products/<int:product_id>/delete", methods=["POST"])
+    def delete(product_id):
+        product = db.get_or_404(Product, product_id)
+        db.session.delete(product)
+        db.session.commit()
+        flash("商品を削除しました")
+        return redirect(url_for("index"))
+
+    @app.errorhandler(404)
+    def not_found(error):
+        return render_template("404.html"), 404
 
     return app
