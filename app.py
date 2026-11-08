@@ -89,6 +89,7 @@ def create_app(test_config=None):
     def show(product_id):
         product = db.get_or_404(Product, product_id)
         return render_template("products/show.html", product=product)
+
     @app.route("/products/<int:product_id>/edit", methods=["GET", "POST"])
     def edit(product_id):
         product = db.get_or_404(Product, product_id)
